@@ -1,0 +1,89 @@
+name: A workflow for my Hello World file
+on: push
+jobs:
+  build:
+    name: Hello world action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: ./action-a
+        with:
+          MY_NAME: "Anthony"
+  
+  render:
+    name: Screenshot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Taking Website Screenshot
+        uses: swinton/screenshot-website@v1.x
+        with:
+          source: ${{ secrets.PUBLIC_WEB_URL }}
+          destination: screenshot.png
+
+  healthcheck:
+    runs-on: ubuntu-latest
+    name: Status Checks 
+    steps:
+      - uses: actions/checkout@v2
+      - id: test
+        uses: johnlokerse/website-healthcheck@v2
+        with:
+          web-url: ${{ secrets.PUBLIC_WEB_URL }}
+          scan-for-text: "Cynthia Sam"
+
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    name: Lighthouse
+    steps:
+      - uses: actions/checkout@v2
+      - name: Running Audit URLs using Lighthouse
+        uses: treosh/lighthouse-ci-action@v8
+        with:
+          urls: |
+            ${{ secrets.PUBLIC_WEB_URL }}
+          budgetPath: ./budget.json # test performance budgets
+          uploadArtifacts: true # save results as an action artifacts
+          temporaryPublicStorage: true # upload lighthouse report to the temporary storage
+
+  speedtest:
+    runs-on: ubuntu-latest
+    name: Page Speed Insights
+    steps:
+      - name: Running Page Speed Insights
+        uses: jakepartusch/psi-action@v1.2
+        id: psi
+        with:
+          url: ${{ secrets.PUBLIC_WEB_URL }}
+          threshold: 70
+          strategy: mobile
+          key: ${{ secrets.PAGESPEEDINSIGHTS }}
+
+  notifications:
+    runs-on: ubuntu-latest
+    name: Push.techulus.com
+    steps:
+      - name: Sending Push Notification
+        uses: techulus/push-github-action@1.0.0
+        env:
+          API_KEY: ${{ secrets.PUSH_TECHULUS_API_KEY }}
+          MESSAGE: "Test notification from GitHub 🧪"
+          TITLE: GitHub Actions Workflow Testing
+          LINK: ${{ secrets.PUBLIC_WEB_URL }}
+
+  ftp-web-deploy:
+    name: 🚀 Deploy website on push
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v2
+    
+    - name: 📂 Sync files
+      uses: SamKirkland/FTP-Deploy-Action@4.2.0
+      with:
+        dry-run: false 
+        protocol: ftps
+        server-dir: ${{ secrets.FTP_REMOTE_PATH }}
+        server: ${{ secrets.FTP_HOSTNAME}}
+        username: ${{ secrets.FTP_USERNAME}}
+        password: ${{ secrets.FTP_PASSWORD }}
